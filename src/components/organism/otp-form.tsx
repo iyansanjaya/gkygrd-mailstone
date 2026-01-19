@@ -33,6 +33,7 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
   const [isPendingResend, startResendTransition] = useTransition();
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isLoading, setIsLoading] = useState(!initialEmail);
+  const [isVerified, setIsVerified] = useState(false);
 
   const isPending = isPendingVerify || isPendingResend;
 
@@ -91,6 +92,7 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
       const result = await verifyOTP(otp);
 
       if (result.success) {
+        setIsVerified(true);
         setSuccess("Verifikasi berhasil! Mengalihkan...");
         setTimeout(() => {
           router.push("/");
@@ -194,7 +196,7 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
               id="otp"
               value={otp}
               onChange={handleOTPChange}
-              disabled={isPending}
+              disabled={isPending || isVerified}
               containerClassName="gap-4 justify-center items-center"
             >
               <InputOTPGroup className="gap-2 *:data-[slot=input-otp-slot]:h-10 *:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
@@ -228,7 +230,10 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
           </Field>
 
           <Field>
-            <Button type="submit" disabled={isPending || otp.length !== 6}>
+            <Button
+              type="submit"
+              disabled={isPending || isVerified || otp.length !== 6}
+            >
               {isPendingVerify ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
