@@ -235,7 +235,9 @@ export function MilestoneForm({ className }: MilestoneFormProps) {
                         setFieldErrors((prev) => ({ ...prev, eventDate: "" }));
                       }
                     }}
-                    initialFocus
+                    captionLayout="dropdown"
+                    startMonth={new Date(new Date().getFullYear() - 100, 0)}
+                    endMonth={new Date(new Date().getFullYear() + 50, 11)}
                   />
                 </PopoverContent>
               </Popover>

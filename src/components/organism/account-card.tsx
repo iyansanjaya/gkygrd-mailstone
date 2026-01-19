@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { LogOut, Mail, User as UserIcon } from "lucide-react";
+import { LogOut, Mail, User as UserIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -13,6 +15,15 @@ import {
 } from "@/components/shadcn/card";
 import { Button } from "@/components/shadcn/button";
 import { Separator } from "@/components/shadcn/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/shadcn/dialog";
 
 interface AccountCardProps {
   user: User;
@@ -20,6 +31,9 @@ interface AccountCardProps {
 }
 
 export function AccountCard({ user, signOutAction }: AccountCardProps) {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   const displayName =
     user.user_metadata?.full_name ||
     user.user_metadata?.name ||
@@ -28,6 +42,11 @@ export function AccountCard({ user, signOutAction }: AccountCardProps) {
 
   const avatarUrl = user.user_metadata?.avatar_url;
   const provider = user.app_metadata?.provider || "email";
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true);
+    await signOutAction();
+  };
 
   return (
     <Card>
@@ -85,12 +104,52 @@ export function AccountCard({ user, signOutAction }: AccountCardProps) {
       </CardContent>
 
       <CardFooter>
-        <form action={signOutAction} className="w-full">
-          <Button variant="outline" type="submit" className="w-full">
-            <LogOut className="mr-2 size-4" />
-            Sign Out
-          </Button>
-        </form>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={isLoggingOut}
+            >
+              <LogOut className="mr-2 size-4" />
+              Sign Out
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Konfirmasi Logout</DialogTitle>
+              <DialogDescription>
+                Apakah Anda yakin ingin keluar dari akun ini?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                disabled={isLoggingOut}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleSignOut}
+                disabled={isLoggingOut}
+              >
+                {isLoggingOut ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Logging out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="mr-2 size-4" />
+                    Ya, Logout
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardFooter>
     </Card>
   );
