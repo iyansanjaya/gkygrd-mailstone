@@ -1,0 +1,559 @@
+# 📋 DOKUMENTASI WEBSITE GKY GERENDENG MILESTONE
+
+Dokumentasi lengkap untuk developer website internal GKY Gerendeng Milestone.
+
+---
+
+## 📑 Daftar Isi
+
+1. [Overview](#overview)
+2. [Tech Stack](#tech-stack)
+3. [Struktur Folder](#struktur-folder)
+4. [Setup & Instalasi](#setup--instalasi)
+5. [Konfigurasi Supabase](#konfigurasi-supabase)
+6. [Arsitektur Aplikasi](#arsitektur-aplikasi)
+7. [Autentikasi](#autentikasi)
+8. [Milestones CRUD](#milestones-crud)
+9. [Proteksi Route](#proteksi-route)
+10. [Komponen](#komponen)
+11. [Debugging](#debugging)
+12. [Deployment](#deployment)
+13. [Keamanan](#keamanan)
+
+---
+
+## Overview
+
+Website internal untuk mencatat milestone/event khusus GKY Gerendeng. Fitur utama:
+- **Login** via Google OAuth atau Email OTP
+- **Milestones** - Catatan event/aktivitas dengan gambar
+- **Admin-only** - Hanya admin yang bisa create/edit/delete
+- **Protected Routes** - Semua halaman memerlukan login
+
+---
+
+## Tech Stack
+
+| Teknologi | Versi | Deskripsi |
+|-----------|-------|-----------|
+| **Next.js** | 16.1.3 | React framework dengan App Router |
+| **React** | 19.2.3 | UI library |
+| **TypeScript** | 5.x | Type-safe JavaScript |
+| **Supabase** | 2.90.1 | Backend-as-a-service (Auth + Database) |
+| **Tailwind CSS** | 4.x | Utility-first CSS |
+| **Zod** | 4.3.5 | Schema validation |
+| **Shadcn UI** | - | Component library |
+
+---
+
+## Struktur Folder
+
+```
+src/
+├── app/                      # Next.js App Router
+│   ├── account/              # Halaman akun user
+│   │   └── page.tsx
+│   ├── auth/                 # Auth routes
+│   │   └── callback/         # OAuth callback handler
+│   │       └── route.ts
+│   ├── form/                 # Halaman form (jika ada)
+│   ├── login/                # Halaman login
+│   │   └── page.tsx
+│   ├── otp/                  # Halaman verifikasi OTP
+│   │   └── page.tsx
+│   ├── globals.css           # Global styles
+│   ├── layout.tsx            # Root layout
+│   └── page.tsx              # Home page (milestones)
+│
+├── components/
+│   ├── molecules/            # Komponen medium
+│   │   ├── docks-menu.tsx    # Bottom navigation
+│   │   └── milestone-card-grid.tsx
+│   ├── organism/             # Komponen besar
+│   │   ├── account-card.tsx  # Card info akun
+│   │   ├── login-form.tsx    # Form login
+│   │   └── otp-form.tsx      # Form OTP
+│   ├── shadcn/               # Shadcn UI components
+│   └── theme-provider.tsx    # Theme context
+│
+├── lib/
+│   ├── actions/              # Server Actions
+│   │   ├── auth.ts           # Auth actions
+│   │   └── milestones.ts     # Milestones CRUD
+│   ├── supabase/             # Supabase clients
+│   │   ├── client.ts         # Browser client
+│   │   ├── server.ts         # Server client
+│   │   ├── middleware.ts     # Middleware helper
+│   │   └── index.ts          # Barrel export
+│   ├── types/                # TypeScript types
+│   │   └── milestones.ts
+│   ├── validations/          # Zod schemas
+│   │   └── auth.ts
+│   └── utils.ts              # Utility functions
+│
+└── proxy.ts                  # Next.js 16 proxy (middleware)
+```
+
+---
+
+## Setup & Instalasi
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm (recommended) atau npm
+- Akun Supabase
+
+### Langkah Instalasi
+
+```bash
+# 1. Clone repository
+git clone <repository-url>
+cd form-mailstone
+
+# 2. Install dependencies
+pnpm install
+
+# 3. Copy environment variables
+cp .env.example .env.local
+
+# 4. Edit .env.local dengan kredensial Supabase
+# NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+
+# 5. Jalankan development server
+pnpm dev
+```
+
+### Scripts
+
+| Script | Deskripsi |
+|--------|-----------|
+| `pnpm dev` | Development server (http://localhost:3000) |
+| `pnpm build` | Production build |
+| `pnpm start` | Start production server |
+| `pnpm lint` | Run ESLint |
+
+---
+
+## Konfigurasi Supabase
+
+### 1. Buat Project di Supabase
+
+1. Buka [supabase.com](https://supabase.com)
+2. Create new project
+3. Copy `Project URL` dan `anon public key`
+
+### 2. Konfigurasi Authentication
+
+**Dashboard → Authentication → Providers:**
+- Enable **Google** provider
+- Add Google Client ID & Secret dari Google Cloud Console
+
+**Dashboard → Authentication → URL Configuration:**
+```
+Site URL: http://localhost:3000 (dev) / https://your-domain.com (prod)
+Redirect URLs: 
+  - http://localhost:3000/auth/callback
+  - https://your-domain.com/auth/callback
+```
+
+### 3. Buat Database Tables
+
+Jalankan SQL berikut di **SQL Editor**:
+
+```sql
+-- ===== TABLE: admins =====
+CREATE TABLE admins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated can check admin status"
+  ON admins FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- ===== TABLE: milestones =====
+CREATE TABLE milestones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  event_date DATE NOT NULL,
+  image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+ALTER TABLE milestones ENABLE ROW LEVEL SECURITY;
+
+-- Read: semua user authenticated
+CREATE POLICY "Authenticated users can read milestones"
+  ON milestones FOR SELECT TO authenticated USING (true);
+
+-- Insert: admin only
+CREATE POLICY "Admins can insert milestones"
+  ON milestones FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
+-- Update: admin only
+CREATE POLICY "Admins can update milestones"
+  ON milestones FOR UPDATE TO authenticated
+  USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
+-- Delete: admin only
+CREATE POLICY "Admins can delete milestones"
+  ON milestones FOR DELETE TO authenticated
+  USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
+-- ===== TRIGGER: updated_at =====
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER milestones_updated_at
+  BEFORE UPDATE ON milestones
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+```
+
+### 4. Tambahkan Admin
+
+```sql
+-- Ganti YOUR_USER_ID dengan ID dari Authentication → Users
+INSERT INTO admins (user_id) VALUES ('YOUR_USER_ID');
+```
+
+---
+
+## Arsitektur Aplikasi
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         BROWSER                              │
+│  React Components (Client)                                   │
+│  - login-form.tsx, otp-form.tsx, milestone-card-grid.tsx    │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTP Request
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      PROXY (proxy.ts)                        │
+│  - Session refresh                                           │
+│  - Route protection                                          │
+│  - Redirect logic                                            │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    SERVER ACTIONS                            │
+│  - auth.ts: signInWithGoogle, signInWithOTP, verifyOTP      │
+│  - milestones.ts: getMilestones, createMilestone, etc       │
+│  Features:                                                   │
+│  - Input validation (Zod)                                    │
+│  - Admin authorization check                                 │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     SUPABASE                                 │
+│  - Auth: Google OAuth, Email OTP, Session                   │
+│  - Database: PostgreSQL with RLS                            │
+│  - Real-time (jika diaktifkan)                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Autentikasi
+
+### Flow Google OAuth
+
+```
+1. User klik "Continue with Google"
+2. signInWithGoogle() → redirect ke Google
+3. User login di Google
+4. Google redirect ke /auth/callback?code=xxx
+5. route.ts exchange code → session cookie
+6. Redirect ke home page
+```
+
+### Flow Email OTP
+
+```
+1. User masukkan email → klik Login
+2. signInWithOTP(email) → kirim OTP ke email
+3. Email disimpan di HTTP-only cookie
+4. Redirect ke /otp
+5. User masukkan 6-digit OTP
+6. verifyOTP(otp) → validasi via Supabase
+7. Session cookie dibuat → redirect ke home
+```
+
+### Session Management
+
+- Session disimpan di **HTTP-only cookies**
+- Proxy refresh session setiap request
+- Session expire mengikuti Supabase config (default 1 minggu)
+
+---
+
+## Milestones CRUD
+
+### Server Actions (`src/lib/actions/milestones.ts`)
+
+| Function | Access | Deskripsi |
+|----------|--------|-----------|
+| `getMilestones()` | All authenticated | Fetch semua milestones |
+| `getMilestoneById(id)` | All authenticated | Fetch single milestone |
+| `createMilestone(input)` | Admin only | Buat milestone baru |
+| `updateMilestone(input)` | Admin only | Update milestone |
+| `deleteMilestone(id)` | Admin only | Hapus milestone |
+| `isAdmin()` | All authenticated | Check admin status |
+
+### Input Validation
+
+```typescript
+// Create milestone schema
+const createMilestoneSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  image_url: z.url().optional().or(z.literal("")),
+});
+```
+
+### Contoh Penggunaan
+
+```typescript
+// Server Component
+import { getMilestones, isAdmin } from "@/lib/actions/milestones";
+
+export default async function Page() {
+  const [result, adminStatus] = await Promise.all([
+    getMilestones(),
+    isAdmin(),
+  ]);
+  
+  if (!result.success) {
+    return <p>Error loading milestones</p>;
+  }
+  
+  return <MilestoneCardGrid milestones={result.data} isAdmin={adminStatus} />;
+}
+```
+
+---
+
+## Proteksi Route
+
+### Konfigurasi (`src/proxy.ts`)
+
+```typescript
+const protectedRoutes = [
+  "/",           // Home
+  "/account",    // Account page
+  "/dashboard",  // Dashboard (jika ada)
+  "/profile",
+  "/settings",
+];
+
+const authRoutes = ["/login", "/otp"];
+```
+
+### Behavior
+
+| Kondisi | Hasil |
+|---------|-------|
+| Unauthenticated + Protected route | Redirect ke /login |
+| Authenticated + Auth route | Redirect ke / |
+| Authenticated + Protected route | Allow access |
+
+---
+
+## Komponen
+
+### LoginForm (`src/components/organism/login-form.tsx`)
+
+Form login dengan:
+- Google OAuth button
+- Email input + OTP flow
+- Error handling dari URL hash (Supabase OAuth errors)
+
+### OTPForm (`src/components/organism/otp-form.tsx`)
+
+Form verifikasi OTP dengan:
+- 6-digit input
+- Resend dengan cooldown 60 detik
+- Email dari HTTP-only cookie (tidak dari URL)
+- Email masking untuk keamanan
+
+### MilestoneCardGrid (`src/components/molecules/milestone-card-grid.tsx`)
+
+Grid kartu milestone dengan:
+- Dialog detail on click
+- Admin-only edit button
+- Image fallback
+- Responsive grid
+
+---
+
+## Debugging
+
+### Common Issues
+
+#### 1. "Supabase environment variables not set"
+
+**Penyebab:** `.env.local` tidak ada atau tidak terisi
+
+**Solusi:**
+```bash
+cp .env.example .env.local
+# Edit dan isi dengan kredensial Supabase
+```
+
+#### 2. "signups not allowed" / "Pendaftaran tidak dibuka"
+
+**Penyebab:** User baru mencoba login tapi signup disabled
+
+**Solusi:**
+- Buka Supabase Dashboard → Authentication → Users
+- Invite user secara manual, atau
+- Enable signup di Authentication → Settings
+
+#### 3. OAuth redirect error
+
+**Penyebab:** Redirect URL tidak terdaftar di Supabase
+
+**Solusi:**
+- Buka Authentication → URL Configuration
+- Tambahkan redirect URL: `http://localhost:3000/auth/callback`
+
+#### 4. Avatar Google tidak muncul
+
+**Penyebab:** Domain tidak di-allow di next.config.ts
+
+**Solusi:**
+Pastikan `next.config.ts` berisi:
+```typescript
+images: {
+  remotePatterns: [
+    { hostname: "lh3.googleusercontent.com" },
+  ],
+}
+```
+
+#### 5. OTP session expired
+
+**Penyebab:** Cookie `otp_session` expired (10 menit)
+
+**Solusi:** Kembali ke login dan request OTP baru
+
+---
+
+### Debug Tools
+
+#### 1. Check Session di Server Action
+
+```typescript
+export async function debugSession() {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  console.log("User:", user);
+  console.log("Error:", error);
+  return { user, error };
+}
+```
+
+#### 2. Check Admin Status
+
+```typescript
+import { isAdmin } from "@/lib/actions/milestones";
+
+// Di server component
+const adminStatus = await isAdmin();
+console.log("Is Admin:", adminStatus);
+```
+
+#### 3. Check RLS Policies di Supabase
+
+```sql
+-- Lihat semua policies
+SELECT * FROM pg_policies WHERE tablename = 'milestones';
+
+-- Test query sebagai user tertentu
+SET request.jwt.claim.sub = 'user-uuid-here';
+SELECT * FROM milestones;
+```
+
+#### 4. Browser DevTools
+
+- **Network tab:** Lihat response dari Server Actions
+- **Application tab → Cookies:** Lihat session cookies
+- **Console:** Error messages
+
+---
+
+## Deployment
+
+### Vercel (Recommended)
+
+```bash
+# 1. Install Vercel CLI
+pnpm i -g vercel
+
+# 2. Deploy
+vercel
+
+# 3. Set environment variables di Vercel Dashboard
+# NEXT_PUBLIC_SUPABASE_URL
+# NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+### Environment Variables
+
+| Variable | Deskripsi | Required |
+|----------|-----------|----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL project Supabase | ✅ |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key Supabase | ✅ |
+| `NEXT_PUBLIC_SITE_URL` | URL production site | Optional |
+
+---
+
+## Keamanan
+
+### Implementasi Saat Ini
+
+| Feature | Status | Detail |
+|---------|--------|--------|
+| HTTP-only cookies | ✅ | Session tidak akses JavaScript |
+| PKCE OAuth flow | ✅ | Supabase default |
+| Row Level Security | ✅ | Database-level protection |
+| Input validation | ✅ | Zod schemas |
+| Admin authorization | ✅ | Double check (app + RLS) |
+| Email masking | ✅ | OTP form shows ```ab***@gmail.com``` |
+| CSRF protection | ✅ | Next.js Server Actions + SameSite |
+
+### Best Practices
+
+1. **Jangan expose** database credentials di client
+2. **Selalu validasi** input dengan Zod
+3. **Check admin** status di setiap write operation
+4. **Jangan log** sensitive data di production
+5. **Update** dependencies secara berkala
+
+---
+
+## Kontributor
+
+- Developer: Iyan Sanjaya
+
+---
+
+*Dokumentasi terakhir diperbarui: 19 Januari 2026*

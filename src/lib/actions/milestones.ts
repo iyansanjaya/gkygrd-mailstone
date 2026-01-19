@@ -9,7 +9,7 @@ import type {
 } from "@/lib/types/milestones";
 
 /**
- * Result type for milestone actions
+ * Tipe hasil untuk aksi milestone
  */
 export type MilestoneResult<T = void> = {
   success: boolean;
@@ -18,17 +18,22 @@ export type MilestoneResult<T = void> = {
 };
 
 /**
- * Validation schemas
+ * Schema validasi untuk membuat milestone
  */
 const createMilestoneSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200),
+  title: z.string().min(1, "Judul wajib diisi").max(200),
   description: z.string().max(2000).optional(),
-  event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  event_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid"),
   image_url: z.url().optional().or(z.literal("")),
 });
 
+/**
+ * Schema validasi untuk update milestone
+ */
 const updateMilestoneSchema = z.object({
-  id: z.string().uuid("Invalid milestone ID"),
+  id: z.string().uuid("ID milestone tidak valid"),
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional(),
   event_date: z
@@ -39,7 +44,7 @@ const updateMilestoneSchema = z.object({
 });
 
 /**
- * Check if current user is an admin
+ * Memeriksa apakah user saat ini adalah admin
  */
 export async function isAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -60,8 +65,8 @@ export async function isAdmin(): Promise<boolean> {
 }
 
 /**
- * Fetch all milestones
- * All authenticated users can read
+ * Mengambil semua milestone
+ * Semua user terautentikasi dapat membaca
  */
 export async function getMilestones(): Promise<MilestoneResult<Milestone[]>> {
   const supabase = await createClient();
@@ -74,7 +79,7 @@ export async function getMilestones(): Promise<MilestoneResult<Milestone[]>> {
   if (error) {
     return {
       success: false,
-      error: "Failed to fetch milestones",
+      error: "Gagal mengambil milestone",
     };
   }
 
@@ -85,7 +90,7 @@ export async function getMilestones(): Promise<MilestoneResult<Milestone[]>> {
 }
 
 /**
- * Get a single milestone by ID
+ * Mengambil satu milestone berdasarkan ID
  */
 export async function getMilestoneById(
   id: string,
@@ -101,7 +106,7 @@ export async function getMilestoneById(
   if (error) {
     return {
       success: false,
-      error: "Milestone not found",
+      error: "Milestone tidak ditemukan",
     };
   }
 
@@ -112,27 +117,27 @@ export async function getMilestoneById(
 }
 
 /**
- * Create a new milestone
- * Admin only
+ * Membuat milestone baru
+ * Hanya admin yang bisa mengakses
  */
 export async function createMilestone(
   input: CreateMilestoneInput,
 ): Promise<MilestoneResult<Milestone>> {
-  // Check admin status first
+  // Periksa status admin terlebih dahulu
   const adminCheck = await isAdmin();
   if (!adminCheck) {
     return {
       success: false,
-      error: "Unauthorized. Admin access required.",
+      error: "Tidak diizinkan. Diperlukan akses admin.",
     };
   }
 
-  // Validate input
+  // Validasi input
   const validation = createMilestoneSchema.safeParse(input);
   if (!validation.success) {
     return {
       success: false,
-      error: validation.error.issues[0]?.message || "Invalid input",
+      error: validation.error.issues[0]?.message || "Input tidak valid",
     };
   }
 
@@ -156,7 +161,7 @@ export async function createMilestone(
   if (error) {
     return {
       success: false,
-      error: "Failed to create milestone",
+      error: "Gagal membuat milestone",
     };
   }
 
@@ -167,33 +172,33 @@ export async function createMilestone(
 }
 
 /**
- * Update an existing milestone
- * Admin only
+ * Memperbarui milestone yang ada
+ * Hanya admin yang bisa mengakses
  */
 export async function updateMilestone(
   input: UpdateMilestoneInput,
 ): Promise<MilestoneResult<Milestone>> {
-  // Check admin status first
+  // Periksa status admin terlebih dahulu
   const adminCheck = await isAdmin();
   if (!adminCheck) {
     return {
       success: false,
-      error: "Unauthorized. Admin access required.",
+      error: "Tidak diizinkan. Diperlukan akses admin.",
     };
   }
 
-  // Validate input
+  // Validasi input
   const validation = updateMilestoneSchema.safeParse(input);
   if (!validation.success) {
     return {
       success: false,
-      error: validation.error.issues[0]?.message || "Invalid input",
+      error: validation.error.issues[0]?.message || "Input tidak valid",
     };
   }
 
   const supabase = await createClient();
 
-  // Build update object with only provided fields
+  // Bangun objek update hanya dengan field yang disediakan
   const updateData: Record<string, unknown> = {};
   if (validation.data.title) updateData.title = validation.data.title;
   if (validation.data.description !== undefined)
@@ -213,7 +218,7 @@ export async function updateMilestone(
   if (error) {
     return {
       success: false,
-      error: "Failed to update milestone",
+      error: "Gagal memperbarui milestone",
     };
   }
 
@@ -224,27 +229,27 @@ export async function updateMilestone(
 }
 
 /**
- * Delete a milestone
- * Admin only
+ * Menghapus milestone
+ * Hanya admin yang bisa mengakses
  */
 export async function deleteMilestone(
   id: string,
 ): Promise<MilestoneResult<void>> {
-  // Check admin status first
+  // Periksa status admin terlebih dahulu
   const adminCheck = await isAdmin();
   if (!adminCheck) {
     return {
       success: false,
-      error: "Unauthorized. Admin access required.",
+      error: "Tidak diizinkan. Diperlukan akses admin.",
     };
   }
 
-  // Validate ID
+  // Validasi ID
   const idValidation = z.string().uuid().safeParse(id);
   if (!idValidation.success) {
     return {
       success: false,
-      error: "Invalid milestone ID",
+      error: "ID milestone tidak valid",
     };
   }
 
@@ -255,7 +260,7 @@ export async function deleteMilestone(
   if (error) {
     return {
       success: false,
-      error: "Failed to delete milestone",
+      error: "Gagal menghapus milestone",
     };
   }
 

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { emailSchema, otpTokenSchema } from "@/lib/validations/auth";
 
 /**
- * Result type for authentication actions
+ * Tipe hasil untuk aksi autentikasi
  */
 export type AuthResult = {
   success: boolean;
@@ -15,15 +15,15 @@ export type AuthResult = {
 };
 
 /**
- * OTP Session cookie configuration
- * Using HTTP-only cookie to securely store email for OTP verification
+ * Konfigurasi cookie sesi OTP
+ * Menggunakan HTTP-only cookie untuk menyimpan email dengan aman
  */
 const OTP_SESSION_COOKIE = "otp_session";
-const OTP_SESSION_MAX_AGE = 600; // 10 minutes
+const OTP_SESSION_MAX_AGE = 600; // 10 menit
 
 /**
- * Gets the current site URL for redirects
- * Handles both production and development environments
+ * Mendapatkan URL situs untuk redirect
+ * Menangani environment production dan development
  */
 function getSiteUrl(): string {
   if (process.env.VERCEL_URL) {
@@ -33,8 +33,8 @@ function getSiteUrl(): string {
 }
 
 /**
- * Initiates Google OAuth sign-in flow
- * Redirects user to Google OAuth consent screen
+ * Memulai alur login Google OAuth
+ * Mengarahkan user ke halaman consent Google
  */
 export async function signInWithGoogle(): Promise<never> {
   const supabase = await createClient();
@@ -58,15 +58,15 @@ export async function signInWithGoogle(): Promise<never> {
     redirect(data.url);
   }
 
-  throw new Error("Failed to get OAuth URL");
+  throw new Error("Gagal mendapatkan URL OAuth");
 }
 
 /**
- * Sends OTP to user's email address
- * Stores email in HTTP-only cookie for secure retrieval
+ * Mengirim OTP ke alamat email user
+ * Menyimpan email di HTTP-only cookie untuk pengambilan yang aman
  *
- * @param email - User's email address
- * @returns Result object with success status
+ * @param email - Alamat email user
+ * @returns Objek hasil dengan status sukses
  */
 export async function signInWithOTP(email: string): Promise<AuthResult> {
   const validationResult = emailSchema.safeParse(email);
@@ -74,7 +74,7 @@ export async function signInWithOTP(email: string): Promise<AuthResult> {
   if (!validationResult.success) {
     return {
       success: false,
-      error: validationResult.error.issues[0]?.message || "Invalid email",
+      error: validationResult.error.issues[0]?.message || "Email tidak valid",
     };
   }
 
@@ -88,6 +88,7 @@ export async function signInWithOTP(email: string): Promise<AuthResult> {
   });
 
   if (error) {
+    // Pendaftaran ditutup atau user tidak ditemukan
     if (
       error.message.toLowerCase().includes("signups not allowed") ||
       error.message.toLowerCase().includes("signup") ||
@@ -105,7 +106,7 @@ export async function signInWithOTP(email: string): Promise<AuthResult> {
     if (error.message.includes("rate limit")) {
       return {
         success: false,
-        error: "Too many requests. Please wait a moment before trying again.",
+        error: "Terlalu banyak permintaan. Silakan tunggu sebentar.",
       };
     }
 
@@ -115,7 +116,7 @@ export async function signInWithOTP(email: string): Promise<AuthResult> {
     };
   }
 
-  // Store email in HTTP-only cookie for OTP verification
+  // Simpan email di HTTP-only cookie untuk verifikasi OTP
   const cookieStore = await cookies();
   cookieStore.set(OTP_SESSION_COOKIE, validationResult.data, {
     httpOnly: true,
@@ -127,13 +128,13 @@ export async function signInWithOTP(email: string): Promise<AuthResult> {
 
   return {
     success: true,
-    message: "Verification code sent to your email",
+    message: "Kode verifikasi telah dikirim ke email Anda",
   };
 }
 
 /**
- * Gets the email from OTP session cookie
- * Returns null if no session exists
+ * Mendapatkan email dari cookie sesi OTP
+ * Mengembalikan null jika tidak ada sesi
  */
 export async function getOTPSessionEmail(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -142,7 +143,7 @@ export async function getOTPSessionEmail(): Promise<string | null> {
 }
 
 /**
- * Clears the OTP session cookie
+ * Menghapus cookie sesi OTP
  */
 async function clearOTPSession(): Promise<void> {
   const cookieStore = await cookies();
@@ -150,20 +151,20 @@ async function clearOTPSession(): Promise<void> {
 }
 
 /**
- * Verifies OTP code entered by user
- * Uses email from secure HTTP-only cookie
+ * Memverifikasi kode OTP yang dimasukkan user
+ * Menggunakan email dari HTTP-only cookie yang aman
  *
- * @param token - 6-digit OTP code
- * @returns Result object with success status
+ * @param token - Kode OTP 6 digit
+ * @returns Objek hasil dengan status sukses
  */
 export async function verifyOTP(token: string): Promise<AuthResult> {
-  // Get email from secure cookie
+  // Ambil email dari cookie aman
   const email = await getOTPSessionEmail();
 
   if (!email) {
     return {
       success: false,
-      error: "Session expired. Please request a new verification code.",
+      error: "Sesi berakhir. Silakan minta kode verifikasi baru.",
     };
   }
 
@@ -173,7 +174,7 @@ export async function verifyOTP(token: string): Promise<AuthResult> {
     return {
       success: false,
       error:
-        tokenResult.error.issues[0]?.message || "Invalid verification code",
+        tokenResult.error.issues[0]?.message || "Kode verifikasi tidak valid",
     };
   }
 
@@ -189,14 +190,14 @@ export async function verifyOTP(token: string): Promise<AuthResult> {
     if (error.message.includes("expired")) {
       return {
         success: false,
-        error: "Verification code has expired. Please request a new one.",
+        error: "Kode verifikasi telah kadaluarsa. Silakan minta kode baru.",
       };
     }
 
     if (error.message.includes("invalid")) {
       return {
         success: false,
-        error: "Invalid verification code. Please check and try again.",
+        error: "Kode verifikasi salah. Silakan periksa dan coba lagi.",
       };
     }
 
@@ -206,17 +207,17 @@ export async function verifyOTP(token: string): Promise<AuthResult> {
     };
   }
 
-  // Clear OTP session on successful verification
+  // Hapus sesi OTP setelah verifikasi berhasil
   await clearOTPSession();
 
   return {
     success: true,
-    message: "Successfully verified",
+    message: "Verifikasi berhasil",
   };
 }
 
 /**
- * Signs out the current user and redirects to login
+ * Logout user dan redirect ke halaman login
  */
 export async function signOut(): Promise<never> {
   const supabase = await createClient();
@@ -225,8 +226,8 @@ export async function signOut(): Promise<never> {
 }
 
 /**
- * Gets the current authenticated user
- * Returns null if not authenticated
+ * Mendapatkan user yang sedang terautentikasi
+ * Mengembalikan null jika tidak terautentikasi
  */
 export async function getUser() {
   const supabase = await createClient();

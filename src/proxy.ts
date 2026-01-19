@@ -2,13 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Next.js proxy for handling Supabase authentication
- * - Refreshes session on every request
- * - Protects configured routes
- * - Redirects authenticated users from auth pages
+ * Next.js proxy untuk menangani autentikasi Supabase
+ * - Menyegarkan sesi setiap request
+ * - Melindungi route yang dikonfigurasi
+ * - Mengarahkan user terautentikasi dari halaman auth
  */
 export async function proxy(request: NextRequest) {
-  // Skip if Supabase is not configured (dev mode without env vars)
+  // Lewati jika Supabase tidak dikonfigurasi (dev mode tanpa env vars)
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -43,13 +43,13 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  // IMPORTANT: Refreshing the auth token
+  // PENTING: Menyegarkan token auth
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes configuration
-  // These routes require authentication - users will be redirected to login
+  // Konfigurasi route yang dilindungi
+  // Route ini memerlukan autentikasi - user akan diarahkan ke login
   const protectedRoutes = [
     "/",
     "/account",
@@ -58,15 +58,15 @@ export async function proxy(request: NextRequest) {
     "/settings",
   ];
   const isProtectedRoute = protectedRoutes.some((route) => {
-    // Exact match for home page
+    // Cocokkan persis untuk home page
     if (route === "/") {
       return request.nextUrl.pathname === "/";
     }
-    // Prefix match for other routes
+    // Cocokkan prefix untuk route lainnya
     return request.nextUrl.pathname.startsWith(route);
   });
 
-  // Redirect unauthenticated users from protected routes
+  // Arahkan user tidak terautentikasi dari route yang dilindungi
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -74,7 +74,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
+  // Arahkan user terautentikasi menjauhi halaman auth
   const authRoutes = ["/login", "/otp"];
   const isAuthRoute = authRoutes.some(
     (route) => request.nextUrl.pathname === route,
@@ -92,17 +92,17 @@ export async function proxy(request: NextRequest) {
 }
 
 /**
- * Configure which routes the proxy should run on
- * Excludes static files and API routes that don't need auth
+ * Konfigurasi route mana yang proxy harus jalankan
+ * Mengecualikan file statis dan API route yang tidak perlu auth
  */
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - Public files (svg, png, jpg, etc.)
+     * Cocokkan semua path request kecuali:
+     * - _next/static (file statis)
+     * - _next/image (file optimasi gambar)
+     * - favicon.ico (file favicon)
+     * - File publik (svg, png, jpg, dll.)
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

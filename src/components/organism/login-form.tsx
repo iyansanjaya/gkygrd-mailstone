@@ -17,7 +17,7 @@ import { Input } from "@/components/shadcn/input";
 import { signInWithGoogle, signInWithOTP } from "@/lib/actions/auth";
 
 /**
- * Error messages for authentication errors
+ * Pesan error untuk kesalahan autentikasi
  */
 const ERROR_MESSAGES: Record<string, string> = {
   signup_disabled:
@@ -38,10 +38,10 @@ export function LoginForm({
 
   const isLoading = isPendingOTP || isPendingGoogle;
 
-  // Check for error in URL params or hash (from OAuth callback)
-  // Supabase OAuth returns errors in URL hash fragment (after #)
+  // Periksa error di URL params atau hash (dari callback OAuth)
+  // Supabase OAuth mengembalikan error di URL hash fragment (setelah #)
   useEffect(() => {
-    // First check query params
+    // Pertama periksa query params
     const errorParam = searchParams.get("error");
     if (errorParam) {
       const errorMessage =
@@ -54,14 +54,14 @@ export function LoginForm({
       return;
     }
 
-    // Check URL hash (Supabase OAuth returns errors in hash fragment)
+    // Periksa URL hash (Supabase OAuth mengembalikan error di hash fragment)
     if (typeof window !== "undefined" && window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const hashError = hashParams.get("error");
       const errorCode = hashParams.get("error_code");
 
       if (hashError || errorCode) {
-        // Check for signup disabled error
+        // Periksa error signup disabled
         if (
           errorCode === "signup_disabled" ||
           hashError === "access_denied" ||
@@ -72,16 +72,16 @@ export function LoginForm({
           setError(ERROR_MESSAGES.auth_callback_error);
         }
 
-        // Clean up URL hash
+        // Bersihkan URL hash
         window.history.replaceState({}, "", window.location.pathname);
       }
     }
   }, [searchParams]);
 
   /**
-   * Handles Google OAuth sign-in
-   * Note: signInWithGoogle uses redirect() which throws NEXT_REDIRECT
-   * This is expected behavior and should not be caught as an error
+   * Menangani login Google OAuth
+   * Catatan: signInWithGoogle menggunakan redirect() yang melempar NEXT_REDIRECT
+   * Ini adalah perilaku yang diharapkan dan tidak boleh ditangkap sebagai error
    */
   const handleGoogleSignIn = () => {
     setError(null);
@@ -89,19 +89,19 @@ export function LoginForm({
       try {
         await signInWithGoogle();
       } catch (err) {
-        // NEXT_REDIRECT is thrown by redirect() - this is expected, not an error
+        // NEXT_REDIRECT dilempar oleh redirect() - ini diharapkan, bukan error
         if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
           return;
         }
         setError(
-          err instanceof Error ? err.message : "Failed to sign in with Google",
+          err instanceof Error ? err.message : "Gagal login dengan Google",
         );
       }
     });
   };
 
   /**
-   * Handles Email OTP sign-in
+   * Menangani login Email OTP
    */
   const handleEmailSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -111,10 +111,10 @@ export function LoginForm({
       const result = await signInWithOTP(email);
 
       if (result.success) {
-        // Redirect to OTP page - email is stored in secure HTTP-only cookie
+        // Redirect ke halaman OTP - email disimpan di HTTP-only cookie yang aman
         router.push("/otp");
       } else {
-        setError(result.error || "Failed to send verification code");
+        setError(result.error || "Gagal mengirim kode verifikasi");
       }
     });
   };
@@ -136,7 +136,7 @@ export function LoginForm({
             <h1 className="text-xl font-bold">GKY Gerendeng Milestone</h1>
           </div>
 
-          {/* Error Message */}
+          {/* Pesan Error */}
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-center text-sm text-destructive">
               {error}
@@ -164,11 +164,11 @@ export function LoginForm({
                   />
                 </svg>
               )}
-              Continue with Google
+              Lanjutkan dengan Google
             </Button>
           </Field>
 
-          <FieldSeparator>Or</FieldSeparator>
+          <FieldSeparator>Atau</FieldSeparator>
 
           <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -189,7 +189,7 @@ export function LoginForm({
               {isPendingOTP ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
-                  Sending code...
+                  Mengirim kode...
                 </>
               ) : (
                 "Login"
@@ -200,15 +200,15 @@ export function LoginForm({
       </form>
 
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our{" "}
+        Dengan mengklik lanjutkan, Anda menyetujui{" "}
         <a href="#" className="underline underline-offset-4 hover:text-primary">
-          Terms of Service
+          Ketentuan Layanan
         </a>{" "}
-        and{" "}
+        dan{" "}
         <a href="#" className="underline underline-offset-4 hover:text-primary">
-          Privacy Policy
-        </a>
-        .
+          Kebijakan Privasi
+        </a>{" "}
+        kami.
       </FieldDescription>
     </div>
   );

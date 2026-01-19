@@ -36,7 +36,7 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
 
   const isPending = isPendingVerify || isPendingResend;
 
-  // Fetch email from server if not provided
+  // Ambil email dari server jika tidak disediakan
   useEffect(() => {
     if (!initialEmail) {
       getOTPSessionEmail().then((sessionEmail) => {
@@ -49,12 +49,12 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
   }, [initialEmail]);
 
   /**
-   * Mask email for display (security)
+   * Menyamarkan email untuk ditampilkan (keamanan)
    */
   const maskedEmail = email ? email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "";
 
   /**
-   * Starts the cooldown timer for resend button
+   * Memulai timer cooldown untuk tombol kirim ulang
    */
   const startCooldown = useCallback(() => {
     setResendCooldown(60);
@@ -70,7 +70,7 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
   }, []);
 
   /**
-   * Handles OTP verification
+   * Menangani verifikasi OTP
    */
   const handleVerify = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,12 +78,12 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
     setSuccess(null);
 
     if (!email) {
-      setError("Session expired. Please go back and request a new code.");
+      setError("Sesi berakhir. Silakan kembali dan minta kode baru.");
       return;
     }
 
     if (otp.length !== 6) {
-      setError("Please enter the complete 6-digit code");
+      setError("Masukkan kode 6 digit yang lengkap");
       return;
     }
 
@@ -91,20 +91,20 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
       const result = await verifyOTP(otp);
 
       if (result.success) {
-        setSuccess("Verification successful! Redirecting...");
+        setSuccess("Verifikasi berhasil! Mengalihkan...");
         setTimeout(() => {
           router.push("/");
           router.refresh();
         }, 500);
       } else {
-        setError(result.error || "Verification failed");
+        setError(result.error || "Verifikasi gagal");
         setOtp("");
       }
     });
   };
 
   /**
-   * Handles resending OTP code
+   * Menangani pengiriman ulang kode OTP
    */
   const handleResend = () => {
     if (!email || resendCooldown > 0) return;
@@ -117,43 +117,45 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
       const result = await signInWithOTP(email);
 
       if (result.success) {
-        setSuccess("New verification code sent to your email");
+        setSuccess("Kode verifikasi baru telah dikirim ke email Anda");
         startCooldown();
       } else {
-        setError(result.error || "Failed to resend code");
+        setError(result.error || "Gagal mengirim ulang kode");
       }
     });
   };
 
   /**
-   * Handle OTP input change
+   * Menangani perubahan input OTP
    */
   const handleOTPChange = (value: string) => {
     setOtp(value);
     setError(null);
   };
 
-  // Loading state while fetching email
+  // State loading saat mengambil email
   if (isLoading) {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
         <div className="flex flex-col items-center gap-4 text-center">
           <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Memuat...</p>
         </div>
       </div>
     );
   }
 
-  // No email found
+  // Email tidak ditemukan
   if (!email) {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
         <div className="flex flex-col items-center gap-4 text-center">
           <p className="text-muted-foreground">
-            Session expired or no email found. Please go back to login.
+            Sesi berakhir atau email tidak ditemukan. Silakan kembali ke login.
           </p>
-          <Button onClick={() => router.push("/login")}>Back to Login</Button>
+          <Button onClick={() => router.push("/login")}>
+            Kembali ke Login
+          </Button>
         </div>
       </div>
     );
@@ -173,21 +175,21 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
               </div>
               <span className="sr-only">GKY Gerendeng</span>
             </a>
-            <h1 className="text-xl font-bold">Enter verification code</h1>
+            <h1 className="text-xl font-bold">Masukkan kode verifikasi</h1>
             <FieldDescription>
-              We sent a 6-digit code to{" "}
+              Kami mengirim kode 6 digit ke{" "}
               <span className="font-medium text-foreground">{maskedEmail}</span>
             </FieldDescription>
           </div>
 
-          {/* Error Message */}
+          {/* Pesan Error */}
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-center text-sm text-destructive">
               {error}
             </div>
           )}
 
-          {/* Success Message */}
+          {/* Pesan Sukses */}
           {success && (
             <div className="rounded-md bg-green-500/10 p-3 text-center text-sm text-green-600 dark:text-green-400">
               {success}
@@ -217,7 +219,7 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
             </InputOTP>
 
             <FieldDescription className="text-center">
-              Didn&apos;t receive the code?{" "}
+              Tidak menerima kode?{" "}
               <button
                 type="button"
                 onClick={handleResend}
@@ -225,10 +227,10 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
                 className="text-primary underline underline-offset-4 hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isPendingResend
-                  ? "Sending..."
+                  ? "Mengirim..."
                   : resendCooldown > 0
-                    ? `Resend in ${resendCooldown}s`
-                    : "Resend"}
+                    ? `Kirim ulang dalam ${resendCooldown}d`
+                    : "Kirim ulang"}
               </button>
             </FieldDescription>
           </Field>
@@ -238,10 +240,10 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
               {isPendingVerify ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
-                  Verifying...
+                  Memverifikasi...
                 </>
               ) : (
-                "Verify"
+                "Verifikasi"
               )}
             </Button>
           </Field>
@@ -252,22 +254,22 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
               onClick={() => router.push("/login")}
               className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
             >
-              ← Back to login
+              ← Kembali ke login
             </button>
           </div>
         </FieldGroup>
       </form>
 
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our{" "}
+        Dengan mengklik lanjutkan, Anda menyetujui{" "}
         <a href="#" className="underline underline-offset-4 hover:text-primary">
-          Terms of Service
+          Ketentuan Layanan
         </a>{" "}
-        and{" "}
+        dan{" "}
         <a href="#" className="underline underline-offset-4 hover:text-primary">
-          Privacy Policy
-        </a>
-        .
+          Kebijakan Privasi
+        </a>{" "}
+        kami.
       </FieldDescription>
     </div>
   );

@@ -1,10 +1,10 @@
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
- * Creates a Supabase client for use in browser/client components.
- * This client handles authentication state automatically via cookies.
+ * Membuat klien Supabase untuk digunakan di komponen browser/client.
+ * Klien ini menangani state autentikasi secara otomatis via cookies.
  *
- * @returns Supabase browser client instance
+ * @returns Instance klien Supabase browser
  */
 export function createClient() {
   return createBrowserClient(

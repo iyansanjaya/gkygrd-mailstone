@@ -1,23 +1,23 @@
 import { z } from "zod/v4";
 
 /**
- * Email validation schema with proper format checking
+ * Schema validasi email dengan pengecekan format yang tepat
  */
 export const emailSchema = z
-  .email("Please enter a valid email address")
-  .min(1, "Email is required");
+  .email("Masukkan alamat email yang valid")
+  .min(1, "Email wajib diisi");
 
 /**
- * OTP token validation schema
- * Ensures exactly 6 digits
+ * Schema validasi token OTP
+ * Memastikan tepat 6 digit angka
  */
 export const otpTokenSchema = z
   .string()
-  .length(6, "OTP must be exactly 6 digits")
-  .regex(/^\d+$/, "OTP must contain only numbers");
+  .length(6, "OTP harus tepat 6 digit")
+  .regex(/^\d+$/, "OTP harus berisi angka saja");
 
 /**
- * Type definitions for auth forms
+ * Definisi tipe untuk form autentikasi
  */
 export type EmailInput = z.infer<typeof emailSchema>;
 export type OTPTokenInput = z.infer<typeof otpTokenSchema>;

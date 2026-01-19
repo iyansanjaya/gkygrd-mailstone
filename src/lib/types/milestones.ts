@@ -1,13 +1,13 @@
 /**
- * Milestone type definitions
- * Represents internal records for events, activities, etc.
+ * Definisi tipe Milestone
+ * Merepresentasikan catatan internal untuk event, aktivitas, dll.
  */
 
 export interface Milestone {
   id: string;
   title: string;
   description: string | null;
-  event_date: string; // ISO date string
+  event_date: string; // String tanggal ISO
   image_url: string | null;
   created_at: string;
   updated_at: string;
@@ -15,7 +15,7 @@ export interface Milestone {
 }
 
 /**
- * Input type for creating a new milestone
+ * Tipe input untuk membuat milestone baru
  */
 export interface CreateMilestoneInput {
   title: string;
@@ -25,7 +25,7 @@ export interface CreateMilestoneInput {
 }
 
 /**
- * Input type for updating an existing milestone
+ * Tipe input untuk memperbarui milestone yang ada
  */
 export interface UpdateMilestoneInput {
   id: string;

@@ -2,10 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 /**
- * Creates a Supabase client for use in Server Components, Server Actions, and Route Handlers.
- * Handles cookie-based session management with proper read/write operations.
+ * Membuat klien Supabase untuk digunakan di Server Components, Server Actions, dan Route Handlers.
+ * Menangani manajemen sesi berbasis cookie dengan operasi baca/tulis yang tepat.
  *
- * @returns Supabase server client instance
+ * @returns Instance klien Supabase server
  */
 export async function createClient() {
   const cookieStore = await cookies();
@@ -24,8 +24,8 @@ export async function createClient() {
               cookieStore.set(name, value, options),
             );
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing user sessions.
+            // Method `setAll` dipanggil dari Server Component.
+            // Ini bisa diabaikan jika middleware menyegarkan sesi user.
           }
         },
       },

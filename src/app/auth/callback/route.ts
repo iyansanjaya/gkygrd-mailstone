@@ -2,12 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 /**
- * OAuth callback handler for Google authentication
- * Exchanges the authorization code for a session
+ * Handler callback OAuth untuk autentikasi Google
+ * Menukar kode otorisasi dengan sesi
  *
- * Note: When signup is disabled, Supabase redirects directly to /login
- * with error in URL hash, bypassing this callback entirely.
- * This callback only handles successful auth code exchange.
+ * Catatan: Ketika signup dinonaktifkan, Supabase langsung redirect ke /login
+ * dengan error di URL hash, melewati callback ini sepenuhnya.
+ * Callback ini hanya menangani pertukaran kode auth yang sukses.
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Successful authentication - redirect to intended destination
+      // Autentikasi berhasil - redirect ke tujuan yang dimaksud
       const forwardedHost = request.headers.get("x-forwarded-host");
       const isLocalEnv = process.env.NODE_ENV === "development";
 
@@ -33,6 +33,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Fallback: redirect to login if something went wrong
+  // Fallback: redirect ke login jika terjadi kesalahan
   return NextResponse.redirect(`${origin}/login`);
 }
