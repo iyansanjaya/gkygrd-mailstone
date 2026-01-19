@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { LogOut, Mail, User as UserIcon, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 import {
   Card,
