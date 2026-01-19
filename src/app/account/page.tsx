@@ -11,7 +11,7 @@ export default async function AccountPage() {
   }
 
   return (
-    <div className="bg-background flex min-h-svh flex-col items-center justify-start sm:justify-center gap-6 pt-10 px-6 sm:p-6">
+    <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 -mt-[10%] sm:-mt-[4%]">
       <div className="w-full max-w-md">
         <AccountCard user={user} signOutAction={signOut} />
       </div>

@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GalleryVerticalEnd, Loader2 } from "lucide-react";
-
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/shadcn/button";
 import {
@@ -124,15 +124,7 @@ export function LoginForm({
       <form onSubmit={handleEmailSubmit}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
-            <a
-              href="#"
-              className="flex flex-col items-center gap-2 font-medium"
-            >
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-6" />
-              </div>
-              <span className="sr-only">GKY Gerendeng</span>
-            </a>
+            <Image src="/logo.svg" alt="Logo" width={100} height={100} />
             <h1 className="text-xl font-bold">GKY Gerendeng Milestone</h1>
           </div>
 
