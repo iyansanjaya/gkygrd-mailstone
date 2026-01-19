@@ -161,8 +161,8 @@ export function MilestoneEditForm({
       if (result.success) {
         setDeleteDialogOpen(false);
         toast.success("Milestone berhasil dihapus!");
-        router.push("/");
-        router.refresh();
+        // Gunakan window.location untuk redirect yang lebih reliable
+        window.location.href = "/";
       } else {
         toast.error(result.error || "Gagal menghapus milestone");
         setDeleteDialogOpen(false);
