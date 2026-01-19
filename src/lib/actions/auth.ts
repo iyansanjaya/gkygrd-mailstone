@@ -24,12 +24,21 @@ const OTP_SESSION_MAX_AGE = 600; // 10 menit
 /**
  * Mendapatkan URL situs untuk redirect
  * Menangani environment production dan development
+ *
+ * PENTING: Prioritaskan NEXT_PUBLIC_SITE_URL untuk custom domain
+ * karena VERCEL_URL berisi domain internal Vercel (xxx.vercel.app)
+ * yang tidak terdaftar di Supabase Redirect URLs
  */
 function getSiteUrl(): string {
+  // Prioritaskan custom domain dari env var
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  // Fallback ke Vercel URL (untuk preview deployments)
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  return "http://localhost:3000";
 }
 
 /**

@@ -104,8 +104,7 @@ export const config = {
      * - _next/image (file optimasi gambar)
      * - favicon.ico (file favicon)
      * - File publik (svg, png, jpg, dll.)
-     * - /auth/* (OAuth callback routes)
      */
-    "/((?!_next/static|_next/image|favicon.ico|auth/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
