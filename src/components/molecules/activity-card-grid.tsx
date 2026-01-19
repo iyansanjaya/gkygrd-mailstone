@@ -48,14 +48,14 @@ export function ActivityCardGrid() {
       {data.map((item, index) => (
         <Dialog key={index}>
           <DialogTrigger asChild>
-            <div className="w-full space-y-3 cursor-pointer">
+            <div className="w-full space-y-3 cursor-pointer group">
               <div className="relative rounded-lg overflow-hidden">
                 <Image
                   src={item.image}
                   alt={item.title}
                   width={1000}
                   height={1000}
-                  className="transition hover:scale-105"
+                  className="transition group-hover:scale-105"
                 />
                 <div className="absolute top-1 right-1">
                   <Popover>
@@ -68,11 +68,18 @@ export function ActivityCardGrid() {
                         <Ellipsis />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-fit bg-transparent border-none">
+                    <PopoverContent className="flex flex-col gap-1 p-1 w-fit bg-background border-none">
+                      <Button
+                        onClick={(e) => e.stopPropagation()}
+                        variant="default"
+                        className="h-8 rounded-sm"
+                      >
+                        Edit
+                      </Button>
                       <Button
                         onClick={(e) => e.stopPropagation()}
                         variant="destructive"
-                        className="w-full"
+                        className="h-8 rounded-sm"
                       >
                         Delete
                       </Button>

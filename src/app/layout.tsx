@@ -37,7 +37,7 @@ export default function RootLayout({
         >
           <div className="relative">
             {children}
-            <div className="fixed bottom-6 right-0 left-0">
+            <div className="fixed bottom-8 right-0 left-0">
               <DockMenu />
             </div>
           </div>

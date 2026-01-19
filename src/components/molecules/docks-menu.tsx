@@ -1,8 +1,33 @@
 "use client";
 
 import React from "react";
-
 import { Dock, DockIcon } from "@/components/magicui/dock";
+import { HomeIcon, User, Pencil } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/shadcn/tooltip";
+import Link from "next/link";
+import { ModeToggle } from "@/components/molecules/mode-toggle";
+
+const data = [
+  {
+    href: "/",
+    icon: HomeIcon,
+    label: "Home",
+  },
+  {
+    href: "/",
+    icon: Pencil,
+    label: "Form",
+  },
+  {
+    href: "/",
+    icon: User,
+    label: "Account",
+  },
+];
 
 export type IconProps = React.HTMLAttributes<SVGElement>;
 
@@ -10,17 +35,29 @@ export function DockMenu() {
   return (
     <div className="relative">
       <Dock direction="middle">
+        {data.map((item, index) => (
+          <DockIcon key={index}>
+            <Tooltip>
+              <Link href={item.href}>
+                <TooltipTrigger asChild>
+                  <item.icon className="size-4.5 text-primary/80" />
+                </TooltipTrigger>
+              </Link>
+              <TooltipContent>
+                <p>{item.label}</p>
+              </TooltipContent>
+            </Tooltip>
+          </DockIcon>
+        ))}
         <DockIcon>
-          <Icons.gitHub className="size-6" />
-        </DockIcon>
-        <DockIcon>
-          <Icons.googleDrive className="size-6" />
-        </DockIcon>
-        <DockIcon>
-          <Icons.notion className="size-6" />
-        </DockIcon>
-        <DockIcon>
-          <Icons.whatsapp className="size-6" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <ModeToggle />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Toggle Theme</p>
+            </TooltipContent>
+          </Tooltip>
         </DockIcon>
       </Dock>
     </div>
