@@ -164,7 +164,7 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form onSubmit={handleVerify}>
-        <FieldGroup>
+        <FieldGroup className="w-full">
           <div className="flex flex-col items-center gap-2 text-center">
             <Image src="/logo.svg" alt="Logo" width={100} height={100} />
             <h1 className="text-xl font-bold">Masukkan kode verifikasi</h1>
@@ -195,15 +195,15 @@ export function OTPForm({ className, initialEmail, ...props }: OTPFormProps) {
               value={otp}
               onChange={handleOTPChange}
               disabled={isPending}
-              containerClassName="gap-4 justify-center"
+              containerClassName="gap-4 justify-center items-center"
             >
-              <InputOTPGroup className="gap-2.5 *:data-[slot=input-otp-slot]:h-16 *:data-[slot=input-otp-slot]:w-12 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
+              <InputOTPGroup className="gap-2 *:data-[slot=input-otp-slot]:h-10 *:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
                 <InputOTPSlot index={0} />
                 <InputOTPSlot index={1} />
                 <InputOTPSlot index={2} />
               </InputOTPGroup>
               <InputOTPSeparator />
-              <InputOTPGroup className="gap-2.5 *:data-[slot=input-otp-slot]:h-16 *:data-[slot=input-otp-slot]:w-12 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
+              <InputOTPGroup className="gap-2 *:data-[slot=input-otp-slot]:h-10 *:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:rounded-md *:data-[slot=input-otp-slot]:border *:data-[slot=input-otp-slot]:text-xl">
                 <InputOTPSlot index={3} />
                 <InputOTPSlot index={4} />
                 <InputOTPSlot index={5} />
