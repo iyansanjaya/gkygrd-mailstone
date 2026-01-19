@@ -64,6 +64,7 @@ src/
 │   │   ├── [id]/             # Halaman edit milestone
 │   │   │   └── page.tsx
 │   │   └── page.tsx          # Form tambah milestone
+│   ├── loading.tsx           # Global Loading UI
 │   ├── login/                # Halaman login
 │   │   └── page.tsx
 │   ├── otp/                  # Halaman verifikasi OTP
@@ -437,6 +438,13 @@ Komponen client-side untuk menampilkan feedback:
 - Mendeteksi query param `?error=unauthorized`
 - Menampilkan toast notification menggunakan **Sonner**
 - Auto-clean URL param setelah notifikasi muncul
+
+### Loading UI (`src/app/loading.tsx`)
+
+Menggunakan native Next.js Loading UI untuk pengalaman pengguna yang lebih baik:
+- Otomatis aktif saat navigasi antar route
+- Menampilkan spinner animasi di tengah layar
+- Menggantikan konten lama secara instan saat memuat konten baru (React Suspense)
 
 ---
 
