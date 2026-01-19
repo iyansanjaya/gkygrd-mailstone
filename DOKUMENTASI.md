@@ -46,6 +46,7 @@ Website internal untuk mencatat milestone/event khusus GKY Gerendeng. Fitur utam
 | **Shadcn UI** | - | Component library |
 | **date-fns** | - | Date formatting |
 | **react-day-picker** | - | Calendar component |
+| **Sonner** | - | Toast notification library |
 
 ---
 
@@ -60,6 +61,8 @@ src/
 │   │   └── callback/         # OAuth callback handler
 │   │       └── route.ts
 │   ├── form/                 # Halaman form admin (protected)
+│   │   ├── [id]/             # Halaman edit milestone
+│   │   │   └── page.tsx
 │   │   └── page.tsx          # Form tambah milestone
 │   ├── login/                # Halaman login
 │   │   └── page.tsx
@@ -72,11 +75,13 @@ src/
 ├── components/
 │   ├── molecules/            # Komponen medium
 │   │   ├── docks-menu.tsx    # Bottom navigation
+│   │   ├── error-notification.tsx # Toast notifikasi error
 │   │   └── milestone-card-grid.tsx
 │   ├── organism/             # Komponen besar
 │   │   ├── account-card.tsx  # Card info akun
 │   │   ├── login-form.tsx    # Form login
 │   │   ├── otp-form.tsx      # Form OTP
+│   │   ├── milestone-edit-form.tsx # Form edit milestone
 │   │   └── milestone-form.tsx # Form tambah milestone (admin)
 │   ├── shadcn/               # Shadcn UI components
 │   └── theme-provider.tsx    # Theme context
@@ -380,7 +385,7 @@ const authRoutes = ["/login", "/otp"];
 | Unauthenticated + Protected route | Redirect ke /login |
 | Authenticated + Auth route | Redirect ke / |
 | Authenticated + Protected route | Allow access |
-| Non-admin + /form | Redirect ke / |
+| Non-admin + /form | Redirect ke / + Toast Error "Akses Ditolak" |
 
 ---
 
@@ -417,6 +422,21 @@ Form untuk menambah milestone (admin only) dengan:
 - Validasi client-side
 - Preview gambar
 - Reset dan submit handling
+
+### MilestoneEditForm (`src/components/organism/milestone-edit-form.tsx`)
+
+Form untuk mengedit milestone (admin only) dengan:
+- Pre-filled data dari server
+- Fitur update data
+- Fitur **Delete** dengan konfirmasi dialog modal
+- Calendar popover & validasi
+
+### ErrorNotification (`src/components/molecules/error-notification.tsx`)
+
+Komponen client-side untuk menampilkan feedback:
+- Mendeteksi query param `?error=unauthorized`
+- Menampilkan toast notification menggunakan **Sonner**
+- Auto-clean URL param setelah notifikasi muncul
 
 ---
 
