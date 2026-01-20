@@ -19,6 +19,7 @@ export type MilestoneResult<T = void> = {
 
 /**
  * Schema validasi untuk membuat milestone
+ * image_url sekarang menyimpan S3 key (bukan URL), presigned URL di-generate saat fetch
  */
 const createMilestoneSchema = z.object({
   title: z.string().min(1, "Judul wajib diisi").max(200),
@@ -26,7 +27,7 @@ const createMilestoneSchema = z.object({
   event_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal tidak valid"),
-  image_url: z.url().optional().or(z.literal("")),
+  image_url: z.string().optional(),
 });
 
 /**
@@ -40,7 +41,7 @@ const updateMilestoneSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  image_url: z.url().optional().or(z.literal("")),
+  image_url: z.string().optional(),
 });
 
 /**
@@ -67,9 +68,11 @@ export async function isAdmin(): Promise<boolean> {
 /**
  * Mengambil semua milestone
  * Semua user terautentikasi dapat membaca
+ * Gambar akan di-resolve ke presigned URL untuk private bucket
  */
 export async function getMilestones(): Promise<MilestoneResult<Milestone[]>> {
   const supabase = await createClient();
+  const { getPresignedImageUrl } = await import("./storage");
 
   const { data, error } = await supabase
     .from("milestones")
@@ -83,19 +86,34 @@ export async function getMilestones(): Promise<MilestoneResult<Milestone[]>> {
     };
   }
 
+  // Generate presigned URLs untuk semua gambar
+  const milestonesWithUrls = await Promise.all(
+    (data as Milestone[]).map(async (milestone) => {
+      if (milestone.image_url) {
+        const result = await getPresignedImageUrl(milestone.image_url);
+        if (result.success && result.url) {
+          return { ...milestone, image_url: result.url };
+        }
+      }
+      return milestone;
+    }),
+  );
+
   return {
     success: true,
-    data: data as Milestone[],
+    data: milestonesWithUrls,
   };
 }
 
 /**
  * Mengambil satu milestone berdasarkan ID
+ * Gambar akan di-resolve ke presigned URL untuk private bucket
  */
 export async function getMilestoneById(
   id: string,
 ): Promise<MilestoneResult<Milestone>> {
   const supabase = await createClient();
+  const { getPresignedImageUrl } = await import("./storage");
 
   const { data, error } = await supabase
     .from("milestones")
@@ -110,9 +128,19 @@ export async function getMilestoneById(
     };
   }
 
+  let milestone = data as Milestone;
+
+  // Generate presigned URL untuk gambar
+  if (milestone.image_url) {
+    const result = await getPresignedImageUrl(milestone.image_url);
+    if (result.success && result.url) {
+      milestone = { ...milestone, image_url: result.url };
+    }
+  }
+
   return {
     success: true,
-    data: data as Milestone,
+    data: milestone,
   };
 }
 

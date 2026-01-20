@@ -11,14 +11,16 @@ Dokumentasi lengkap untuk developer website internal GKY Gerendeng Milestone.
 3. [Struktur Folder](#struktur-folder)
 4. [Setup & Instalasi](#setup--instalasi)
 5. [Konfigurasi Supabase](#konfigurasi-supabase)
-6. [Arsitektur Aplikasi](#arsitektur-aplikasi)
-7. [Autentikasi](#autentikasi)
-8. [Milestones CRUD](#milestones-crud)
-9. [Proteksi Route](#proteksi-route)
-10. [Komponen](#komponen)
-11. [Debugging](#debugging)
-12. [Deployment](#deployment)
-13. [Keamanan](#keamanan)
+6. [Konfigurasi S3 Storage](#konfigurasi-s3-storage)
+7. [Arsitektur Aplikasi](#arsitektur-aplikasi)
+8. [Autentikasi](#autentikasi)
+9. [Milestones CRUD](#milestones-crud)
+10. [Image Upload](#image-upload)
+11. [Proteksi Route](#proteksi-route)
+12. [Komponen](#komponen)
+13. [Debugging](#debugging)
+14. [Deployment](#deployment)
+15. [Keamanan](#keamanan)
 
 ---
 
@@ -41,6 +43,7 @@ Website internal untuk mencatat milestone/event khusus GKY Gerendeng. Fitur utam
 | **React** | 19.2.3 | UI library |
 | **TypeScript** | 5.x | Type-safe JavaScript |
 | **Supabase** | 2.90.1 | Backend-as-a-service (Auth + Database) |
+| **AWS SDK S3** | 3.x | S3-compatible storage client |
 | **Tailwind CSS** | 4.x | Utility-first CSS |
 | **Zod** | 4.3.5 | Schema validation |
 | **Shadcn UI** | - | Component library |
@@ -90,7 +93,8 @@ src/
 ├── lib/
 │   ├── actions/              # Server Actions
 │   │   ├── auth.ts           # Auth actions
-│   │   └── milestones.ts     # Milestones CRUD
+│   │   ├── milestones.ts     # Milestones CRUD
+│   │   └── storage.ts        # S3 image upload/delete
 │   ├── supabase/             # Supabase clients
 │   │   ├── client.ts         # Browser client
 │   │   ├── server.ts         # Server client
@@ -358,8 +362,60 @@ const createMilestoneSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  image_url: z.url().optional().or(z.literal("")),
+  image_url: z.string().optional(), // S3 key, bukan URL
 });
+```
+
+---
+
+## Image Upload
+
+### Arsitektur
+
+Gambar di-upload ke **S3-compatible storage** (iDrive E2) dengan private bucket. Presigned URLs digunakan untuk akses gambar.
+
+```
+1. Admin upload gambar → Server validate (MIME + magic bytes)
+2. Upload ke S3 → Return S3 key (milestones/xxx.jpg)
+3. Key disimpan di database (field image_url)
+4. Saat fetch data → Generate presigned URL (valid 1 jam)
+5. Browser akses gambar via presigned URL
+```
+
+### Server Actions (`src/lib/actions/storage.ts`)
+
+| Function | Akses | Deskripsi |
+|----------|-------|-----------|
+| `uploadMilestoneImage(formData)` | Admin only | Upload gambar ke S3 |
+| `getPresignedImageUrl(key)` | All authenticated | Generate presigned URL |
+| `deleteMilestoneImage(key)` | Admin only | Hapus gambar dari S3 |
+
+### Validasi Keamanan
+
+```typescript
+// 1. MIME type validation
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// 2. File size limit
+const MAX_FILE_SIZE = 250 * 1024; // 250KB
+
+// 3. Magic bytes validation (mencegah MIME spoofing)
+const FILE_SIGNATURES = {
+  "image/jpeg": { bytes: [0xff, 0xd8, 0xff] },
+  "image/png": { bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
+  "image/webp": { bytes: [0x52, 0x49, 0x46, 0x46] }, // + "WEBP" at offset 8
+};
+```
+
+### Environment Variables
+
+```env
+# S3-Compatible Storage (Private Bucket)
+S3_ENDPOINT=https://xxx.e2.idrivee2.com
+S3_REGION=auto
+S3_ACCESS_KEY_ID=your-access-key
+S3_SECRET_ACCESS_KEY=your-secret-key
+S3_BUCKET_NAME=your-bucket
 ```
 
 ### Contoh Penggunaan

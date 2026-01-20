@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
-  ImageIcon,
   CalendarIcon,
   FileText,
   Trash2,
+  Upload,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -47,12 +49,19 @@ import {
   DialogTrigger,
 } from "@/components/shadcn/dialog";
 import { updateMilestone, deleteMilestone } from "@/lib/actions/milestones";
+import {
+  uploadMilestoneImage,
+  deleteMilestoneImage,
+} from "@/lib/actions/storage";
 import type { Milestone } from "@/lib/types/milestones";
 
 interface MilestoneEditFormProps {
   milestone: Milestone;
   className?: string;
 }
+
+const MAX_FILE_SIZE = 250 * 1024; // 250KB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export function MilestoneEditForm({
   milestone,
@@ -62,6 +71,7 @@ export function MilestoneEditForm({
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state dengan initial values dari milestone
   const [title, setTitle] = useState(milestone.title);
@@ -69,12 +79,24 @@ export function MilestoneEditForm({
   const [eventDate, setEventDate] = useState<Date | undefined>(
     new Date(milestone.event_date),
   );
-  const [imageUrl, setImageUrl] = useState(milestone.image_url || "");
+  const [existingImageUrl, setExistingImageUrl] = useState(
+    milestone.image_url || "",
+  );
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   // Feedback state
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Preview URL
+  const previewUrl = imageFile
+    ? URL.createObjectURL(imageFile)
+    : removeExistingImage
+      ? null
+      : existingImageUrl;
 
   /**
    * Validasi form sebelum submit
@@ -96,24 +118,53 @@ export function MilestoneEditForm({
       errors.description = "Deskripsi maksimal 2000 karakter";
     }
 
-    if (imageUrl && !isValidUrl(imageUrl)) {
-      errors.imageUrl = "URL gambar tidak valid";
-    }
-
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   /**
-   * Validasi URL sederhana
+   * Validasi file gambar
    */
-  const isValidUrl = (url: string): boolean => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return "Tipe file tidak didukung. Gunakan JPEG, PNG, atau WebP.";
     }
+    if (file.size > MAX_FILE_SIZE) {
+      return `Ukuran file terlalu besar (${(file.size / 1024).toFixed(0)}KB). Maksimal 250KB.`;
+    }
+    return null;
+  };
+
+  /**
+   * Handle file selection
+   */
+  const handleFileSelect = (file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      setFieldErrors((prev) => ({ ...prev, image: error }));
+      return;
+    }
+    setFieldErrors((prev) => ({ ...prev, image: "" }));
+    setImageFile(file);
+    setRemoveExistingImage(false);
+  };
+
+  /**
+   * Handle file input change
+   */
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  /**
+   * Handle drag and drop
+   */
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
   };
 
   /**
@@ -129,12 +180,36 @@ export function MilestoneEditForm({
     }
 
     startTransition(async () => {
+      let imageUrl: string | undefined = existingImageUrl || undefined;
+
+      // Upload gambar baru jika ada
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+
+        const uploadResult = await uploadMilestoneImage(formData);
+        if (!uploadResult.success) {
+          setError(uploadResult.error || "Gagal mengupload gambar");
+          return;
+        }
+        imageUrl = uploadResult.url;
+
+        // Hapus gambar lama jika ada
+        if (existingImageUrl) {
+          await deleteMilestoneImage(existingImageUrl);
+        }
+      } else if (removeExistingImage && existingImageUrl) {
+        // Hapus gambar lama tanpa mengganti
+        await deleteMilestoneImage(existingImageUrl);
+        imageUrl = undefined;
+      }
+
       const result = await updateMilestone({
         id: milestone.id,
         title: title.trim(),
         description: description.trim() || undefined,
         event_date: eventDate ? format(eventDate, "yyyy-MM-dd") : undefined,
-        image_url: imageUrl.trim() || undefined,
+        image_url: imageUrl || "",
       });
 
       if (result.success) {
@@ -156,12 +231,16 @@ export function MilestoneEditForm({
    */
   const handleDelete = () => {
     startDeleteTransition(async () => {
+      // Hapus gambar dari storage jika ada
+      if (existingImageUrl) {
+        await deleteMilestoneImage(existingImageUrl);
+      }
+
       const result = await deleteMilestone(milestone.id);
 
       if (result.success) {
         setDeleteDialogOpen(false);
         toast.success("Milestone berhasil dihapus!");
-        // Gunakan window.location untuk redirect yang lebih reliable
         window.location.href = "/";
       } else {
         toast.error(result.error || "Gagal menghapus milestone");
@@ -177,10 +256,13 @@ export function MilestoneEditForm({
     setTitle(milestone.title);
     setDescription(milestone.description || "");
     setEventDate(new Date(milestone.event_date));
-    setImageUrl(milestone.image_url || "");
+    setExistingImageUrl(milestone.image_url || "");
+    setImageFile(null);
+    setRemoveExistingImage(false);
     setError(null);
     setSuccess(null);
     setFieldErrors({});
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const isPendingAny = isPending || isDeleting;
@@ -360,54 +442,109 @@ export function MilestoneEditForm({
               </FieldDescription>
             </Field>
 
-            {/* URL Gambar */}
+            {/* Upload Gambar */}
             <Field>
-              <FieldLabel htmlFor="imageUrl">
+              <FieldLabel>
                 <span className="flex items-center gap-2">
-                  <ImageIcon className="size-4" />
-                  URL Gambar
+                  <Upload className="size-4" />
+                  Gambar
                 </span>
               </FieldLabel>
-              <Input
-                id="imageUrl"
-                type="url"
-                placeholder="https://example.com/image.jpg"
-                value={imageUrl}
-                onChange={(e) => {
-                  setImageUrl(e.target.value);
-                  if (fieldErrors.imageUrl) {
-                    setFieldErrors((prev) => ({ ...prev, imageUrl: "" }));
-                  }
-                }}
-                disabled={isPendingAny}
-                className={fieldErrors.imageUrl ? "border-destructive" : ""}
-              />
-              {fieldErrors.imageUrl && (
-                <FieldError className="text-destructive">
-                  {fieldErrors.imageUrl}
-                </FieldError>
-              )}
-              <FieldDescription>
-                Masukkan URL gambar dari sumber eksternal (opsional)
-              </FieldDescription>
-            </Field>
 
-            {/* Preview Gambar */}
-            {imageUrl && isValidUrl(imageUrl) && (
-              <Field>
-                <FieldLabel>Preview Gambar</FieldLabel>
-                <div className="rounded-lg border overflow-hidden">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileChange}
+                disabled={isPendingAny}
+                className="hidden"
+              />
+
+              {previewUrl ? (
+                <div className="relative rounded-lg border overflow-hidden">
                   <img
-                    src={imageUrl}
+                    src={previewUrl}
                     alt="Preview"
                     className="w-full h-48 object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
                   />
+                  {!isPendingAny && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 size-8"
+                      onClick={() => {
+                        if (imageFile) {
+                          setImageFile(null);
+                          if (fileInputRef.current)
+                            fileInputRef.current.value = "";
+                        } else {
+                          setRemoveExistingImage(true);
+                        }
+                      }}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                  {imageFile && (
+                    <div className="absolute bottom-2 left-2 bg-background/80 rounded px-2 py-1 text-xs">
+                      {imageFile.name} ({(imageFile.size / 1024).toFixed(0)}KB)
+                    </div>
+                  )}
                 </div>
-              </Field>
-            )}
+              ) : (
+                <div
+                  onClick={() => !isPendingAny && fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!isPendingAny) setDragActive(true);
+                  }}
+                  onDragLeave={() => setDragActive(false)}
+                  onDrop={handleDrop}
+                  className={cn(
+                    "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
+                    dragActive
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-primary/50",
+                    isPendingAny && "opacity-50 cursor-not-allowed",
+                    fieldErrors.image && "border-destructive",
+                  )}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="rounded-full bg-muted p-3">
+                      <Upload className="size-6 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm font-medium">
+                      Klik atau drag gambar ke sini
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      JPEG, PNG, WebP (max 250KB)
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {fieldErrors.image && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  <p>{fieldErrors.image}</p>
+                  {fieldErrors.image.includes("250KB") && (
+                    <a
+                      href="https://compressjpeg.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-1 underline hover:no-underline"
+                    >
+                      Compress gambar di sini
+                      <ExternalLink className="size-3" />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <FieldDescription>
+                Upload gambar untuk milestone (opsional)
+              </FieldDescription>
+            </Field>
 
             {/* Tombol Aksi */}
             <div className="flex gap-3 pt-4">
