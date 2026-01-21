@@ -1,4 +1,4 @@
-# 📋 Milestone Web App
+# 📋 GKYGRD Milestone
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 [![Next.js](https://img.shields.io/badge/Next.js-16.1.3-black?logo=next.js)](https://nextjs.org/)
